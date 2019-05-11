@@ -37,6 +37,7 @@ class AZombieShooterCharacter : public ACharacter
 	UPROPERTY()
 		UUserWidget *DamageEffectWidget;
 
+
 	UPROPERTY()
 		TSubclassOf<UUserWidget> DamageEffectWidgetTemplate;
 
@@ -46,6 +47,7 @@ class AZombieShooterCharacter : public ACharacter
 
 	UPROPERTY()
 		TSubclassOf<UEnemyKillFeedWidgetClass> EnemyKillfeedWidgetTemplate;
+
 
 	//Weapon
 	UPROPERTY()
@@ -72,6 +74,7 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
 
 
 
@@ -227,6 +230,15 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		USceneCaptureComponent2D* SceneCaptureComponent;
+
+	UPROPERTY()
+		UUserWidget *HitMarkerWidget;
+
+
+	UPROPERTY()
+		TSubclassOf<UUserWidget> HitMarkerWidgetTemplate;
+
+
 
 	/** Displays the Kill feed when an enemy has been killed. It is set as public because it will be called by the enemy that was killed before he dies **/
 	void ShowKillFeed(FString EnemyName);

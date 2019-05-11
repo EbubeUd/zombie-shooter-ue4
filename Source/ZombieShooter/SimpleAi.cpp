@@ -85,6 +85,10 @@ void ASimpleAi::TriggerEnter(UPrimitiveComponent * OverlappedComponent, AActor *
 	AProjectile_Base* ProjectileBullet = Cast<AProjectile_Base>(OtherActor);
 	if (!ProjectileBullet) return;	//It means the AI Character did not collide with a bullet
 
+	//Spawn the Hit Marker Widget
+	MainCharacter->HitMarkerWidget = CreateWidget<UUserWidget>(GetGameInstance(), MainCharacter->HitMarkerWidgetTemplate);
+	MainCharacter->HitMarkerWidget->AddToViewport();
+
 	//Prevent the character from taking further Damage while he is taking damage.
 	if (!bCanTakeDamage) return;
 	bCanTakeDamage = false;	

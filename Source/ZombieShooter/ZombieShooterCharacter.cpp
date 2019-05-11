@@ -323,7 +323,9 @@ void AZombieShooterCharacter::BeginPlay() {
 	//Fetch the Dynamic Cross Hair Widget
 	WBCrosshairWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/DynamicCrossHair.WBCrosshair_C"));
 
-
+	//Fetch the Hit Marker Widget
+	HitMarkerWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/HitMarker.HitMarker_C"));
+	
 	//Set up the Weapon
 	UWorld* const World = GetWorld();
 	AK47Weapon = World->SpawnActor<AAK47_Base>(AAK47_Base::StaticClass(), GetActorLocation(), GetActorRotation()); //Spawn the Weapon
