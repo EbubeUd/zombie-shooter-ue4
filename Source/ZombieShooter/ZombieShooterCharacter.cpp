@@ -235,6 +235,7 @@ void AZombieShooterCharacter::SwitchGun()
 	{
 	case Guns::AK47:
 		SelectedGun = Guns::M4A;
+		AK47Weapon->SwitchWeapon();
 		break;
 	case Guns::M4A:
 		SelectedGun = Guns::AK47;

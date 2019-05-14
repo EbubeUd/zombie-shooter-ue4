@@ -30,9 +30,17 @@ protected:
 	UPROPERTY()
 		USkeletalMesh* SkeletalMesh;
 
+	UPROPERTY()
+		USkeletalMesh* M4ASkeletalMesh;
+
 	//Skeletal Mesh Component Holding the Gun
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 		USkeletalMeshComponent* WeaponSkeletalMesh;
+
+
+	//Skeletal Mesh Component Holding the Gun
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+		USkeletalMeshComponent* M4ASkeletalMeshComp;
 
 	//Holds the Sound of the Weapon when fired
 	UPROPERTY()
@@ -65,6 +73,8 @@ protected:
 		float Damage;
 
 
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -73,7 +83,8 @@ public:
 	void OnFire();
 
 	//Called when the Gun is reloaded
-	void Reload();
+	 void Reload();
+
 
 	//Returns the Fire rate of The Gun( The Delay between two shots when the fire button is held down)
 	float GetFireRate() const { return FireRate; }
@@ -93,6 +104,7 @@ public:
 	//Returns the Damage that the Gun Can inflict. (Ranges from 0 - 1)
 	float GetDamage() const { return Damage; }
 
+	void SwitchWeapon();
 
 
 	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return WeaponSkeletalMesh; }
