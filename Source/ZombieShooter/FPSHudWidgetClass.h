@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "UMG/Public/Animation/WidgetAnimation.h"
 #include "FPSHudWidgetClass.generated.h"
 
 /**
@@ -26,4 +27,9 @@ public:
 	//Holds the Weapon Armor of the main Character 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "User Interface")
 		int MainCharacterWeaponAmmo;
+
+	//Holds the Weapon Armor of the main Character 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "User Interface")
+		UWidgetAnimation* M4APickUpAnimation;
+
 };

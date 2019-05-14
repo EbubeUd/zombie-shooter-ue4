@@ -14,6 +14,8 @@
 
 AZombieShooterCharacter::AZombieShooterCharacter()
 {
+	
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
 
@@ -70,6 +72,9 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	//Set the Default Objective Text
 	ObjectiveText = "Progress Through the Level";
 
+	//Set the Selected Gun
+	SelectedGun = Guns::AK47;
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
@@ -115,6 +120,8 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 	PlayerInputComponent->BindAction("AimDown", IE_Released, this, &AZombieShooterCharacter::StopAiming);
 
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AZombieShooterCharacter::Reload);
+
+	PlayerInputComponent->BindAction("SwitchGun", IE_Pressed, this, &AZombieShooterCharacter::SwitchGun);
 }
 
 void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
@@ -133,7 +140,8 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 	
 }
 
-void AZombieShooterCharacter::Fire() {
+void AZombieShooterCharacter::Fire() 
+{
 	if (bIsReloading || bIsSprinting) return;	//Exit if the Player is Reloading or sprinting
 	AK47Weapon->OnFire();
 }
@@ -145,7 +153,7 @@ void AZombieShooterCharacter::Reload()
 	if (bIsReloading) return;	//Exit if the player is already reloading
 	if (AK47Weapon->GetClipSize() == AK47Weapon->GetAmmo()) return; //Exit if the Player Has full Ammo
 	bIsReloading = true;
-	UGameplayStatics::PlaySound2D(AK47Weapon, ReloadSound, 1.f);	//Play the reload sound
+	UGameplayStatics::PlaySound2D(AK47Weapon, ReloadSound);	//Play the reload sound
 	GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &AZombieShooterCharacter::StopReload, 2.5f, true, 2.5f);	//Set IsReloading to false when the animation is done playing. the Animation length was checked and found to be 3.3 secs, but it can be set to a desired time
 }
 
@@ -218,6 +226,20 @@ void AZombieShooterCharacter::ReduceTimeLeftToLive()
 		return;
 	}
 	TimeLeftToLive--;
+}
+
+void AZombieShooterCharacter::SwitchGun()
+{
+	if (!bHasPickedM4A) return;	//Exit if the player has not yet picked up M4A gun
+	switch (SelectedGun) 
+	{
+	case Guns::AK47:
+		SelectedGun = Guns::M4A;
+		break;
+	case Guns::M4A:
+		SelectedGun = Guns::AK47;
+		break;
+	}
 }
 
 void AZombieShooterCharacter::TakeDamage(float RateOfDamage)

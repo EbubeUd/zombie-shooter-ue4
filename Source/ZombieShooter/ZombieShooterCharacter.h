@@ -10,6 +10,7 @@
 #include "EnemyKillFeedWidgetClass.h"
 #include "FPSHudWidgetClass.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Enums/Enums.h"
 #include "ZombieShooterCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -26,9 +27,7 @@ class AZombieShooterCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent *FollowCamera;
 
-	//FPSHud Widget
-	UPROPERTY()
-		UFPSHudWidgetClass *FPSHudWidget;
+	
 
 	UPROPERTY()
 		TSubclassOf<UFPSHudWidgetClass> FPSHudWidgetTemplate;
@@ -137,6 +136,9 @@ protected:
 	/** Handler For Reducing the time left for the Characert to live **/
 	void ReduceTimeLeftToLive();
 
+	/** Handler For Switching the Gun that the Character is currently using among the available Guns He has **/
+	void SwitchGun();
+
 	/** Tick Event. Calls on Every Frame **/
 	void Tick(float DeltaTime);
 
@@ -158,8 +160,10 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-
 public:
+	//FPSHud Widget
+	UPROPERTY()
+		UFPSHudWidgetClass *FPSHudWidget;
 
 	//Holds the Health Of the Character
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -204,6 +208,9 @@ public:
 	UPROPERTY()
 		float MaxSprintSpeed;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool bHasPickedM4A;
+
 	/**Regenerates the plaer's  Armor After Damage
 	*@Param fRate - Holds the Rate in float to add to the user's Armor
 	*/
@@ -239,9 +246,11 @@ public:
 		TSubclassOf<UUserWidget> HitMarkerWidgetTemplate;
 
 
-
 	/** Displays the Kill feed when an enemy has been killed. It is set as public because it will be called by the enemy that was killed before he dies **/
 	void ShowKillFeed(FString EnemyName);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapons")
+		Guns SelectedGun;
 
 protected:
 	FTimerDelegate ArmorRegenerationTimerDelegate;
