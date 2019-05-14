@@ -18,9 +18,6 @@ AAK47_Base::AAK47_Base()
 
 	//Set the Skeletal Mesh of the Weapon
 	SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Weapons/AK47/AK.AK"));
-	M4ASkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Weapons/M4A/M4A1.M4A1_weapon002"));
-
-	//M4ASkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>
 	WeaponSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponSkeletalMesh");
 	if(SkeletalMesh) WeaponSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
 	WeaponSkeletalMesh->SetupAttachment(RootComponent);	
@@ -40,12 +37,6 @@ void AAK47_Base::BeginPlay()
 	FireSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/Ak.Ak"));
 }
 
-// Called every frame
-void AAK47_Base::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
 
 void AAK47_Base::OnFire()
 {
@@ -66,26 +57,5 @@ void AAK47_Base::OnFire()
 	FlashEmitterComponent->SetWorldScale3D(FVector(.05f, .05f, .05f));
 }
 
-void AAK47_Base::Reload()
-{
-	int Requestedbullets = ClipSize - Ammo;	//Gets the total number of bullets needed by the shooter;
-	if (MaxAmmo > Requestedbullets)
-	{
-		//Subtract the Value of the Bullets requested from the Max ammo and Add to the Ammo
-		MaxAmmo -= Requestedbullets;
-		Ammo += Requestedbullets;
-	}
-	else 
-	{
-		//If the Max Ammo is not up to the number of requested bullets, Just credit the Ammo with the Number of bullets in the Max ammo
-		MaxAmmo = 0;
-		Ammo += MaxAmmo;
-	}
-}
 
-
-void AAK47_Base::SwitchWeapon()
-{
-	WeaponSkeletalMesh->SetSkeletalMesh(M4ASkeletalMesh);
-}
 

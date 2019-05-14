@@ -17,15 +17,11 @@ AM4A_Base::AM4A_Base()
 void AM4A_Base::BeginPlay()
 {
 	Super::BeginPlay();
-	Fire();
 }
 
 
 
-// Called every frame
-void AM4A_Base::Tick(float DeltaTime)
+void AM4A_Base::OnFire()
 {
-	Super::Tick(DeltaTime);
 
 }
-
