@@ -126,7 +126,8 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 
 void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 
-	
+	//This function is Called at interval
+	//If there is anything that can be done to stop the timer when the armor is full, please do.
 
 	if (Armor < 1.0f) {
 		//Increase the Armor by the RateOfRegeneration
@@ -135,7 +136,6 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 	else {
 		
 		Armor = 1.0f;	//Set the Armor to 1.0f because it might have increased more than 1.0f 
-		//GetWorld()->GetTimerManager().ClearTimer(ArmorRegenerationTimerHandle);		//Stop the Timer to reduce memory usage since the Player Has full armor
 	}
 	
 }
@@ -143,7 +143,16 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 void AZombieShooterCharacter::Fire() 
 {
 	if (bIsReloading || bIsSprinting) return;	//Exit if the Player is Reloading or sprinting
-	AK47Weapon->OnFire();
+	switch (SelectedGun)
+	{
+	case Guns::AK47:
+		AK47Weapon->OnFire();
+		break;
+	case Guns::M4A:
+		M4AWeapon->OnFire();
+		break;
+	}
+	
 }
 
 void AZombieShooterCharacter::Reload()
@@ -151,28 +160,45 @@ void AZombieShooterCharacter::Reload()
 	StopAiming();	//Stop the Character From Aiming when About to reload
 	
 	if (bIsReloading) return;	//Exit if the player is already reloading
-	if (AK47Weapon->GetClipSize() == AK47Weapon->GetAmmo()) return; //Exit if the Player Has full Ammo
+	switch (SelectedGun) {
+	case Guns::AK47:
+		if (AK47Weapon->GetClipSize() == AK47Weapon->GetAmmo()) return; //Exit if the Player Has full Ammo
+		break;
+	case Guns::M4A:
+		if (M4AWeapon->GetClipSize() == M4AWeapon->GetAmmo()) return; //Exit if the Player Has full Ammo
+		break;
+	}
 	bIsReloading = true;
-	UGameplayStatics::PlaySound2D(AK47Weapon, ReloadSound);	//Play the reload sound
+	UGameplayStatics::PlaySound2D(this, ReloadSound);	//Play the reload sound
 	GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &AZombieShooterCharacter::StopReload, 2.5f, true, 2.5f);	//Set IsReloading to false when the animation is done playing. the Animation length was checked and found to be 3.3 secs, but it can be set to a desired time
 }
 
 void AZombieShooterCharacter::StopReload()
 {
 	bIsReloading = false;
-	AK47Weapon->Reload();	//Has finished reloading, Increment the Ammo count.
+	switch (SelectedGun) {
+	case Guns::AK47:
+		AK47Weapon->Reload();	//Has finished reloading, Increment the Ammo count.
+		break;
+	case Guns::M4A:
+		M4AWeapon->Reload();	//Has finished reloading, Increment the Ammo count.
+		break;
+	}
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);	//Clear the Timer After Stopping the reload Animation;
 }
 
 void AZombieShooterCharacter::StartAutomatedFire()
 {
 	//AutomatedFireTimerDelegate.BindUFunction(this, FName("Fire"));
-	GetWorldTimerManager().SetTimer(AutomatedFireTimerHandle, this, &AZombieShooterCharacter::Fire, AK47Weapon->GetFireRate(), true, 0.f);
+	bIsFiring = true;
+	float FireRate = (SelectedGun == Guns::AK47) ? AK47Weapon->GetFireRate() : M4AWeapon->GetFireRate();
+	GetWorldTimerManager().SetTimer(AutomatedFireTimerHandle, this, &AZombieShooterCharacter::Fire, FireRate, true, 0.f);
 }
 
 void AZombieShooterCharacter::StopAutomatedFire()
 {
 	GetWorld()->GetTimerManager().ClearTimer(AutomatedFireTimerHandle);
+	bIsFiring = false;
 }
 
 void AZombieShooterCharacter::Crouch()
@@ -231,13 +257,18 @@ void AZombieShooterCharacter::ReduceTimeLeftToLive()
 void AZombieShooterCharacter::SwitchGun()
 {
 	if (!bHasPickedM4A) return;	//Exit if the player has not yet picked up M4A gun
+	if (bIsFiring) return;	//Exit if the Character is currently Firing a weapon
 	switch (SelectedGun) 
 	{
 	case Guns::AK47:
 		SelectedGun = Guns::M4A;
+		AK47Weapon->SetActorHiddenInGame(true);
+		M4AWeapon->SetActorHiddenInGame(false);
 		break;
 	case Guns::M4A:
 		SelectedGun = Guns::AK47;
+		M4AWeapon->SetActorHiddenInGame(true);
+		AK47Weapon->SetActorHiddenInGame(false);
 		break;
 	}
 }
@@ -330,34 +361,31 @@ void AZombieShooterCharacter::BeginPlay() {
 	//Call BeginPlay() in the Parent Class. Essential for code below this line to work efficiently
 	Super::BeginPlay();
 
-	//Fetch the FPShud widget Template 
+	//Get An Instance of the World
+	UWorld* const World = GetWorld();
+
+	//Fetch the Widget Templates 
 	FPSHudWidgetTemplate = LoadClass<UFPSHudWidgetClass>(nullptr, TEXT("/Game/ThirdPersonCpp/Blueprints/Widgets/FPSHud.FPSHud_C"));
-
-	//Fetch the EnemyKillfeed Widget Template(It will only be displayed when an Enemy is killed)
 	EnemyKillfeedWidgetTemplate = LoadClass<UEnemyKillFeedWidgetClass>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/KillFeed.KillFeed_C"));
-
-	//Fetch the DamageEffect Widget Template(It wont be added to the viewport now. It will be added whenever the main character takes damage)
 	DamageEffectWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCpp/Blueprints/Widgets/DamageEffect.DamageEffect_C"));
+	WBCrosshairWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/DynamicCrossHair.WBCrosshair_C"));
+	HitMarkerWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/HitMarker.HitMarker_C"));
 
-	//Fetch the Reload Sound (Spawned whenever the character is reloading)
+	//Fetch the Sounds
 	ReloadSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/reload.reload"));
 
-	//Fetch the Dynamic Cross Hair Widget
-	WBCrosshairWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/DynamicCrossHair.WBCrosshair_C"));
+	//Spawn the weapons
+	AK47Weapon = World->SpawnActor<AAK47_Base>(AAK47_Base::StaticClass(), GetActorLocation(), GetActorRotation()); 
+	M4AWeapon = World->SpawnActor<AM4A_Base>(AM4A_Base::StaticClass(), GetActorLocation(), GetActorRotation());
 
-	//Fetch the Hit Marker Widget
-	HitMarkerWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/HitMarker.HitMarker_C"));
-	
-	//Set up the Weapon
-	UWorld* const World = GetWorld();
-	AK47Weapon = World->SpawnActor<AAK47_Base>(AAK47_Base::StaticClass(), GetActorLocation(), GetActorRotation()); //Spawn the Weapon
-	FName WeaponSocketName = TEXT("Weapon_Attach"); //Get the name of the socket to attach the follow camera to
-	AK47Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName); //Attach to the Mesh at the Socket Specified
-
+	//Get the name of the character's socket to attach the Spawned Weapons to and Attach the weapons
+	FName WeaponSocketName = TEXT("Weapon_Attach"); 
+	AK47Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
+	M4AWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
+	M4AWeapon->SetActorHiddenInGame(true);
 
 	//Display the FPSHud widget on the viewport
 	FPSHudWidget = CreateWidget<UFPSHudWidgetClass>(GetGameInstance(), FPSHudWidgetTemplate);
-
 	FPSHudWidget->AddToViewport();
 
 	//Create the  WBCrosshair widget and add to the View Port

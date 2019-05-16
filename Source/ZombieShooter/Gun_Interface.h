@@ -49,14 +49,8 @@ public:
 
 	
 
-	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return WeaponSkeletalMesh; }
 
 protected: 
-	//Skeletal Mesh of the Gun
-		USkeletalMesh* SkeletalMesh;
-
-	//Skeletal Mesh Component Holding the Gun
-		USkeletalMeshComponent* WeaponSkeletalMesh;
 
 
 	//Holds the Sound of the Weapon when fired

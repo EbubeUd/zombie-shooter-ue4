@@ -11,6 +11,7 @@
 #include "FPSHudWidgetClass.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Enums/Enums.h"
+#include "M4A_Base.h"
 #include "ZombieShooterCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -51,6 +52,9 @@ class AZombieShooterCharacter : public ACharacter
 	//Weapon
 	UPROPERTY()
 		TSubclassOf<AAK47_Base> AK47WeaponClass;
+
+	UPROPERTY()
+		TSubclassOf<AM4A_Base> M4AWeaponClass;
 
 	UPROPERTY()
 		USoundBase* ReloadSound;
@@ -188,6 +192,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		bool bIsReloading;
 
+	UPROPERTY()
+		bool bIsFiring;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		FString ObjectiveText;
 
@@ -226,6 +233,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		AAK47_Base* AK47Weapon;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		AM4A_Base* M4AWeapon;
 
 	/**ADS Camera for Aiming */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))

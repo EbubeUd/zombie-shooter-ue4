@@ -27,6 +27,15 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	//Skeletal Mesh of the Gun
+	UPROPERTY(EditAnywhere, Category="Components")
+	USkeletalMesh* SkeletalMesh;
+
+	//Skeletal Mesh Component Holding the Gun
+	UPROPERTY(EditAnywhere, Category = "Components")
+	USkeletalMeshComponent* WeaponSkeletalMesh;
+
+
 public:	
 
 	/** Override the base Function For Firing the Gun**/
@@ -38,20 +47,20 @@ public:
 
 	//Returns the Ammo Available in the Gun
 	UFUNCTION(BlueprintCallable)
-	float GetAmmo() const { return Ammo; }
-
+	int GetAmmo() const { return Ammo; }
 
 	//Returns the Max Ammo
 	UFUNCTION(BlueprintCallable)
-	float GetMaxAmmo() const { return MaxAmmo; }
+	int GetMaxAmmo() const { return MaxAmmo; }
 
 	//Returns the Clip Size
 	UFUNCTION(BlueprintCallable)
-	float GetClipSize() const { return ClipSize; }
+	int GetClipSize() const { return ClipSize; }
 
 	//Returns the Damage that the Gun Can inflict. (Ranges from 0 - 1)
 	UFUNCTION(BlueprintCallable)
 	float GetDamage() const { return Damage; }
 
+	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return WeaponSkeletalMesh; }
 
 };

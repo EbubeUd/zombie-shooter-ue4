@@ -21,7 +21,7 @@ AM4APickUp::AM4APickUp()
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
 	SkeletalMeshComp->SkeletalMesh = SkeletalMesh;
 	SkeletalMeshComp->SetAbsolute(false, false, true);	//Make the Scale to be independent of the parent Scale
-	SkeletalMeshComp->SetRelativeScale3D(FVector(3.f));
+	//SkeletalMeshComp->SetRelativeScale3D(FVector(3.f));
 	SkeletalMeshComp->AttachTo(BoxCollisionComp);
 	FVector Rot = SkeletalMeshComp->GetComponentLocation();
 	SkeletalMeshComp->SetRelativeLocation(FVector(28.f, -24.f, 40.f));
