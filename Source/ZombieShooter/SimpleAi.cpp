@@ -12,8 +12,8 @@ ASimpleAi::ASimpleAi()
 	Health = 1.f;
 	MovementRadius = 250.f;
 	
-	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &ASimpleAi::TriggerEnter);
 	GetCapsuleComponent()->SetGenerateOverlapEvents(true);
+	GetMesh()->SetCollisionProfileName(TEXT("BlockAll"));
 
 	//Define the Pawn Sensing Component
 	PawnSensingComp = CreateDefaultSubobject<UPawnSensingComponent>("PawnSensingComponent");
@@ -62,7 +62,6 @@ void ASimpleAi::MoveCharacterAround()
 	if (MoveStatus) {
 		AICtrl->MoveTo(RandomLocation);
 	}
-
 	
 }
 
@@ -79,22 +78,33 @@ void ASimpleAi::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
-void ASimpleAi::TriggerEnter(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
-{
-	//Check the Object that Collided with the AI Character
-	AProjectile_Base* ProjectileBullet = Cast<AProjectile_Base>(OtherActor);
-	if (!ProjectileBullet) return;	//It means the AI Character did not collide with a bullet
 
-	//Spawn the Hit Marker Widget
+
+void ASimpleAi::Die() 
+{
+	MainCharacter->ShowKillFeed(Name);
+	Destroy();
+}
+
+
+void ASimpleAi::EndPlay(const EEndPlayReason::Type EndPlayReason) {
+	Super::EndPlay(EndPlayReason);
+	//clear ALL timers that belong to this (Actor) instance.
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+}
+
+
+void ASimpleAi::TakeBulletDamage_Implementation(float Damage)
+{
+	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("I have been hit"));
 	MainCharacter->HitMarkerWidget = CreateWidget<UUserWidget>(GetGameInstance(), MainCharacter->HitMarkerWidgetTemplate);
 	MainCharacter->HitMarkerWidget->AddToViewport();
 
 	//Prevent the character from taking further Damage while he is taking damage.
 	if (!bCanTakeDamage) return;
-	bCanTakeDamage = false;	
+	bCanTakeDamage = false;
 
 	//Subtract the Health from the AI Character
-	float Damage = MainCharacter->AK47Weapon->GetDamage();
 	Health -= Damage;
 
 	//Check if the Character is left with any more health
@@ -105,22 +115,4 @@ void ASimpleAi::TriggerEnter(UPrimitiveComponent * OverlappedComponent, AActor *
 		bCanTakeDamage = true;
 		AICtrl->MoveTo(MainCharacter->GetActorLocation());	//Move the Enemy to the location of the Pawn Sooting him
 	}
-}
-
-void ASimpleAi::Die() 
-{
-	MainCharacter->ShowKillFeed(Name);
-	Destroy();
-}
-
-void ASimpleAi::TriggerHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
-	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("I have been hit"));
-
-}
-
-
-void ASimpleAi::EndPlay(const EEndPlayReason::Type EndPlayReason) {
-	Super::EndPlay(EndPlayReason);
-	//clear ALL timers that belong to this (Actor) instance.
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 }

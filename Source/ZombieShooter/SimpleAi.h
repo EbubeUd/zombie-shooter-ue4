@@ -10,10 +10,11 @@
 #include "Engine/GameEngine.h"
 #include "Runtime/AIModule/Classes/AIController.h"
 #include "Runtime/NavigationSystem/Public/NavigationSystem.h"
+#include "Damageable.h"
 #include "SimpleAi.generated.h"
 
 UCLASS()
-class ZOMBIESHOOTER_API ASimpleAi : public ACharacter
+class ZOMBIESHOOTER_API ASimpleAi : public ACharacter, public IDamageable
 {
 	GENERATED_BODY()
 
@@ -45,16 +46,19 @@ protected:
 	//The Handle that will be used to control the timer for moving the Character around at intervals
 	FTimerHandle CharacterMovementTimerHandle;
 
+	UPROPERTY()
+		AAIController* AICtrl;
+
 	/** Called At intervals to move the Character from one place to thhe other **/
 	void MoveCharacterAround();
 
 	/**Called when the Player is Deactivated*/
 	void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
-	UPROPERTY()
-		AAIController* AICtrl;
-
-
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
+		void TakeBulletDamage(float Damage);
+		virtual void TakeBulletDamage_Implementation(float Damage) override;
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -73,16 +77,9 @@ public:
 	//Holds the name of the Enemy
 	UPROPERTY(EditAnywhere, Category = "Biography")
 		FString Name;
-	
-	UFUNCTION()
-		void TriggerEnter(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
-
-	UFUNCTION()
-		void TriggerHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UPROPERTY()
 		AZombieShooterCharacter* MainCharacter;
-
 
 
 	void Die();

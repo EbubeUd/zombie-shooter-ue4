@@ -4,11 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Kismet/GameplayStatics.h"
-#include "ConstructorHelpers.h"
-#include "Projectile_Base.h"
-#include "Runtime/Engine/Classes/Particles/ParticleSystem.h"
-#include "Runtime/Engine/Classes/Particles/ParticleSystemComponent.h"
 #include "Gun_Interface.h"
 #include "M4A_Base.generated.h"
 
@@ -26,9 +21,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
-public:	
-	USkeletalMeshComponent* RootComp;
+	//Root Component of the Weapon
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+		USkeletalMeshComponent* RootComp;
 
 	//Skeletal Mesh of the Gun
 	UPROPERTY(VisibleAnywhere, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -38,9 +33,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Components", meta = (AllowPrivateAccess = "true"))
 		USkeletalMeshComponent* WeaponSkeletalMesh;
 
-	/** Override the base Function For Firing the Gun**/
-	virtual void OnFire() override;
+	//Returns the instance of the Actor
+	virtual const AActor* GetChildActorReference() override { return this; };
 
+
+public:	
+	
 	//Returns the Fire rate of The Gun( The Delay between two shots when the fire button is held down)
 	UFUNCTION(BlueprintCallable)
 		float GetFireRate() const { return FireRate; }
@@ -61,6 +59,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		float GetDamage() const { return Damage; }
 	
-	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return WeaponSkeletalMesh; }
+	//Returns the SkeletalMesh Component of the weapon
+	virtual const USkeletalMeshComponent* GetSkeletalMeshComponent() override { return WeaponSkeletalMesh; }
 
 };

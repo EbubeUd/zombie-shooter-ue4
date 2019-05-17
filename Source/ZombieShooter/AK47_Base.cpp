@@ -15,6 +15,7 @@ AAK47_Base::AAK47_Base()
 	ClipSize = 50;
 	Ammo = ClipSize;
 	Damage = .1f;
+	MaxDistanceBulletCanTravel = 1500.f;
 
 	//Set the Skeletal Mesh of the Weapon
 	SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Weapons/AK47/AK.AK"));
@@ -37,25 +38,6 @@ void AAK47_Base::BeginPlay()
 	FireSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/Ak.Ak"));
 }
 
-
-void AAK47_Base::OnFire()
-{
-	
-	if (Ammo < 1)	return;	//Check if there is enough ammo
-	Ammo--;	//Reduce the Ammo Count by 1;
-
-	//Spawn the Projectile
-	UWorld* const World = GetWorld();
-	FTransform MuzzleTransform = WeaponSkeletalMesh->GetSocketTransform(TEXT("Muzzle"));
-	World->SpawnActor<AProjectile_Base>(AProjectile_Base::StaticClass(), MuzzleTransform);
-
-	//Spawn Sound
-	UGameplayStatics::PlaySound2D(this, FireSound, 1.f);
-	
-	//Spawn Emitter
-	FlashEmitterComponent = UGameplayStatics::SpawnEmitterAtLocation(this, FlashEmitter, WeaponSkeletalMesh->GetSocketLocation("Muzzle"));
-	FlashEmitterComponent->SetWorldScale3D(FVector(.05f, .05f, .05f));
-}
 
 
 

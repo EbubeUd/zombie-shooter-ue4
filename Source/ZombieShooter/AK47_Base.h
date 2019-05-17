@@ -4,14 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/AudioComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Runtime/Engine/Classes/Particles/ParticleSystem.h"
-#include "Runtime/Engine/Classes/Particles/ParticleSystemComponent.h"
-#include "Projectile_Base.h"
 #include "Gun_Interface.h"
-#include "ConstructorHelpers.h"
 #include "AK47_Base.generated.h"
 
 UCLASS()
@@ -35,11 +28,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Components")
 	USkeletalMeshComponent* WeaponSkeletalMesh;
 
+	//Returns the instance of the Actor
+	virtual const AActor* GetChildActorReference() override { return this; };
+
 
 public:	
-
-	/** Override the base Function For Firing the Gun**/
-	virtual void OnFire() override;
 
 	//Returns the Fire rate of The Gun( The Delay between two shots when the fire button is held down)
 	UFUNCTION(BlueprintCallable)
@@ -61,6 +54,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	float GetDamage() const { return Damage; }
 
-	USkeletalMeshComponent* GetSkeletalMeshComponent() const { return WeaponSkeletalMesh; }
+	virtual const USkeletalMeshComponent* GetSkeletalMeshComponent() override { return WeaponSkeletalMesh; }
 
 };

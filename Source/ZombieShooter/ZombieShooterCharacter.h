@@ -234,7 +234,7 @@ public:
 		AAK47_Base* AK47Weapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		AM4A_Base* M4AWeapon;
+		AM4A_Base *M4AWeapon;
 
 	/**ADS Camera for Aiming */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))

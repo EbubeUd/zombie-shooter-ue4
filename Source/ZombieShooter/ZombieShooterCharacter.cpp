@@ -143,13 +143,14 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 void AZombieShooterCharacter::Fire() 
 {
 	if (bIsReloading || bIsSprinting) return;	//Exit if the Player is Reloading or sprinting
+	UCameraComponent* CameraInUse = (bIsAiming) ? ADSCamera : FollowCamera;
 	switch (SelectedGun)
 	{
 	case Guns::AK47:
-		AK47Weapon->OnFire();
+		AK47Weapon->OnFire(CameraInUse);
 		break;
 	case Guns::M4A:
-		M4AWeapon->OnFire();
+		M4AWeapon->OnFire(CameraInUse);
 		break;
 	}
 	

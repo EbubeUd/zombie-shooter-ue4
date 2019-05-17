@@ -21,7 +21,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-//sUPROPERTY(EditAnywhere, Category="Components")
+
+
+	//sUPROPERTY(EditAnywhere, Category="Components")
 		UStaticMesh* CapsuleStaticMesh;
 
 	UPROPERTY(EditAnywhere, Category="Components")

@@ -15,6 +15,7 @@ AM4A_Base::AM4A_Base()
 	ClipSize = 50;
 	Ammo = ClipSize;
 	Damage = .1f;
+	MaxDistanceBulletCanTravel = 2000.f;
 
 	RootComp = CreateDefaultSubobject<USkeletalMeshComponent>("RootComponent");
 	SetRootComponent(RootComp);
@@ -25,7 +26,7 @@ AM4A_Base::AM4A_Base()
 	if (SkeletalMesh) WeaponSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
 	WeaponSkeletalMesh->SetupAttachment(RootComp);
 
-	//Set up the Location and rotaion of the Gun
+	//Set up the Location and rotation of the Gun
 	WeaponSkeletalMesh->SetRelativeLocation(FVector(31.3f, -25.2f, -117.f));	//Set the location of the Skeletal mesh To fit the Pivot of the Root Component
 	WeaponSkeletalMesh->SetRelativeScale3D(FVector(3.f));	//Set the Scale of the Weapon to match The scale of other Actors in the game.
 	WeaponSkeletalMesh->SetRelativeRotation(FRotator(0.f, 0.f, -90.f));	//Rotate the Skeletal Mesh to fit into the Weapon_Attach socket of the Character Holding the Gun.
@@ -39,29 +40,6 @@ AM4A_Base::AM4A_Base()
 void AM4A_Base::BeginPlay()
 {
 	Super::BeginPlay();
-	//FRotator ActorRotation = GetActorRotation();
-	//ActorRotation.Yaw = 270.6f;
-	//SetActorRotation(ActorRotation);
 	FireSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/Ak.Ak"));
-
 }
 
-
-
-void AM4A_Base::OnFire()
-{
-	if (Ammo < 1)	return;	//Check if there is enough ammo
-	Ammo--;	//Reduce the Ammo Count by 1;
-
-	//Spawn the Projectile
-	UWorld* const World = GetWorld();
-	FTransform MuzzleTransform = WeaponSkeletalMesh->GetSocketTransform(TEXT("Muzzle"));
-	World->SpawnActor<AProjectile_Base>(AProjectile_Base::StaticClass(), MuzzleTransform);
-
-	//Spawn Sound
-	UGameplayStatics::PlaySound2D(this, FireSound, 1.f);
-
-	//Spawn Emitter
-	FlashEmitterComponent = UGameplayStatics::SpawnEmitterAtLocation(this, FlashEmitter, WeaponSkeletalMesh->GetSocketLocation("Muzzle"));
-	FlashEmitterComponent->SetWorldScale3D(FVector(.05f, .05f, .05f));
-}

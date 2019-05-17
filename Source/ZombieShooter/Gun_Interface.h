@@ -5,6 +5,16 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
+#include "Runtime/Engine/Classes/Particles/ParticleSystem.h"
+#include "Runtime/Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Engine/GameEngine.h"
+#include "ConstructorHelpers.h"
+#include "Damageable.h"
+#include "DrawDebugHelpers.h"
+
 #include "Gun_Interface.generated.h"
 
 // This class does not need to be modified.
@@ -36,10 +46,12 @@ protected:
 	//The Amount of Damage Each bullet of the Gun can cause on the Victim between 0 to 1. The Damage point will be subtracted from the victim's health otr Armor
 		float Damage;
 
+	//The Max Distance the Bullet Can Travel
+		float MaxDistanceBulletCanTravel;
 public:
 
 	
-	virtual void OnFire();
+	virtual void OnFire(UCameraComponent* FollowCamera);
 
 	/**There is a default function for reload which all guns have but they Can Uveride it if they wish**/
 	void Reload();
@@ -47,9 +59,11 @@ public:
 	//Increments the Ammo by the Number of clips
 	void IncrementMaxAmmo() { MaxAmmo += ClipSize; }
 
-	
+	virtual const USkeletalMeshComponent* GetSkeletalMeshComponent() { return nullptr; };
 
+	virtual const AActor* GetChildActorReference() { return nullptr; };
 
+	virtual void CustomFireEventForWeapon(FHitResult& OutHit) {};
 protected: 
 
 
