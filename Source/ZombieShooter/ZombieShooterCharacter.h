@@ -125,7 +125,7 @@ protected:
 	/** Handler for Stopping Automated Fire When the Shoot Button is released **/
 	void StopAutomatedFire();
 
-	void Crouch();
+	void CrouchPlayer();
 
 	void Stand();
 

@@ -57,6 +57,7 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	FName FollowCameraSocketName = TEXT("head"); //Get the name of the socket to attach the follow camera to
 	FollowCamera->SetupAttachment(GetMesh(), FollowCameraSocketName);	//Attach the Camera the The Socket of the Mesh and Set the Mesh as its Parent
 	
+
 	//Set Up The ADS Camera
 	ADSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ADSCamera"));
 	ADSCamera->SetupAttachment(GetMesh(), TEXT("Weapon_Attach"));
@@ -111,7 +112,7 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AZombieShooterCharacter::Fire);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AZombieShooterCharacter::StartAutomatedFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AZombieShooterCharacter::StopAutomatedFire);
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AZombieShooterCharacter::Crouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AZombieShooterCharacter::CrouchPlayer);
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AZombieShooterCharacter::Stand);
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AZombieShooterCharacter::Sprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AZombieShooterCharacter::Stand);
@@ -202,10 +203,12 @@ void AZombieShooterCharacter::StopAutomatedFire()
 	bIsFiring = false;
 }
 
-void AZombieShooterCharacter::Crouch()
+void AZombieShooterCharacter::CrouchPlayer()
 {
 	if (bIsSprinting) return;	//Prevents the Character from crouching if he is sprinting
 	bIsCrouching = true;	//Enables the Crouch animation
+	Crouch();	//Call the In Built Crouch Function;
+	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed;
 	
 }
@@ -214,6 +217,7 @@ void AZombieShooterCharacter::Stand()
 {
 	bIsSprinting = false;	//Disables the sprint animation
 	bIsCrouching = false;	//Disables the Crouch animation
+	UnCrouch();
 	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
 }
 

@@ -20,11 +20,14 @@ AM4APickUp::AM4APickUp()
 	SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Weapons/M4A/M4A1.M4A1_weapon002"));
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
 	SkeletalMeshComp->SkeletalMesh = SkeletalMesh;
+	SkeletalMeshComp->SetRenderCustomDepth(true);
 	SkeletalMeshComp->SetAbsolute(false, false, true);	//Make the Scale to be independent of the parent Scale
 	//SkeletalMeshComp->SetRelativeScale3D(FVector(3.f));
 	SkeletalMeshComp->AttachTo(BoxCollisionComp);
 	FVector Rot = SkeletalMeshComp->GetComponentLocation();
 	SkeletalMeshComp->SetRelativeLocation(FVector(28.f, -24.f, 40.f));
+
+	
 	}
 
 // Called when the game starts or when spawned
