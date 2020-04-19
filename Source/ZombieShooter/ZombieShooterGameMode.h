@@ -6,6 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "Blueprint/UserWidget.h"
 #include "ZombieShooterCharacter.h"
+
 #include "ZombieShooterGameMode.generated.h"
 
 UCLASS(minimalapi)
@@ -13,14 +14,13 @@ class AZombieShooterGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-
 public:
 	AZombieShooterGameMode();
+	//AZombieShooterCharacter* MainCharacter;	
 
-	AZombieShooterCharacter* MainCharacter;
 protected:
 	void BeginPlay();
-
+	
 
 };
 

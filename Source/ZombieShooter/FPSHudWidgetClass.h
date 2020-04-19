@@ -32,4 +32,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "User Interface")
 		UWidgetAnimation* M4APickUpAnimation;
 
+	//Holds the player's Steam Id
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "User Interface")
+		FString PlayerId;
+
+	//Holds the player's steam Nick Name
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "User Interface")
+		FString PlayerNickname;
 };

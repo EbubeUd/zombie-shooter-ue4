@@ -9,13 +9,21 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 
-//////////////////////////////////////////////////////////////////////////
 // AZombieShooterCharacter
 
 AZombieShooterCharacter::AZombieShooterCharacter()
 {
-	
 
+
+	////Get the player Id and assign it to the player Id Variable
+	//playerId = onlineSubSystem->GetIdentityInterface()->GetUniquePlayerId(0);
+
+	////Define the player's Nickname
+	//PlayerNickName = onlineSubSystem->GetIdentityInterface()->GetPlayerNickname(0);
+
+	//Define the PLayer Id String if the Id is not null
+	//if (playerId->IsValid()) stringifiedPlayerId = playerId->ToString();
+	
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
 
@@ -50,6 +58,9 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	CameraBoom->TargetArmLength = 300.f; // The camera follows at this distance behind the character	
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
+	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>("PawnNoise");
+
+
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
@@ -57,6 +68,11 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	FName FollowCameraSocketName = TEXT("head"); //Get the name of the socket to attach the follow camera to
 	FollowCamera->SetupAttachment(GetMesh(), FollowCameraSocketName);	//Attach the Camera the The Socket of the Mesh and Set the Mesh as its Parent
 	
+
+	//Create the ThirsPersonCamera
+	ThirdPersonCamera = CreateDefaultSubobject<UCameraComponent>("ThirdPersonCamera");
+	ThirdPersonCamera->bUsePawnControlRotation = true;
+	ThirdPersonCamera->SetupAttachment(GetMesh());
 
 	//Set Up The ADS Camera
 	ADSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ADSCamera"));
@@ -76,11 +92,17 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	//Set the Selected Gun
 	SelectedGun = Guns::AK47;
 
+
+	//Set up the Sounds
+	InjuredSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/No.No"));
+	DeathSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/Nooooo.Nooooo"));
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
 }
 
-//////////////////////////////////////////////////////////////////////////
+
 // Input
 
 void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -123,13 +145,15 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AZombieShooterCharacter::Reload);
 
 	PlayerInputComponent->BindAction("SwitchGun", IE_Pressed, this, &AZombieShooterCharacter::SwitchGun);
+	PlayerInputComponent->BindAction("SwitchCamera", IE_Pressed, this, &AZombieShooterCharacter::SwitchCamera);
+
 }
 
 void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 
 	//This function is Called at interval
 	//If there is anything that can be done to stop the timer when the armor is full, please do.
-
+	if (bIsRecievingDamage) return;	//Exit if the PLayer is currently receiving Damage or is in sight of an enemy
 	if (Armor < 1.0f) {
 		//Increase the Armor by the RateOfRegeneration
 		Armor += RateOfRegeneration;
@@ -144,32 +168,34 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 void AZombieShooterCharacter::Fire() 
 {
 	if (bIsReloading || bIsSprinting) return;	//Exit if the Player is Reloading or sprinting
+	if (!PawnNoiseEmitter) return;
 	UCameraComponent* CameraInUse = (bIsAiming) ? ADSCamera : FollowCamera;
-	switch (SelectedGun)
+	if (!CameraInUse) 
 	{
-	case Guns::AK47:
-		AK47Weapon->OnFire(CameraInUse);
-		break;
-	case Guns::M4A:
-		M4AWeapon->OnFire(CameraInUse);
-		break;
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Camera is null"));
+		return;
 	}
-	
+	if (!EquippedGun->_getUObject())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Equipped Gun U Object is null"));
+		return;
+	}
+
+	if(!PawnNoiseEmitter)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Pawn Noise Emitter is null"));
+		return;
+	}
+
+	if (EquippedGun) EquippedGun->Execute_FireGun(EquippedGun->_getUObject(), CameraInUse, this, PawnNoiseEmitter);
 }
 
 void AZombieShooterCharacter::Reload()
 {
 	StopAiming();	//Stop the Character From Aiming when About to reload
-	
+	if (!EquippedGun) return;	//Exit if the Equipped weapon is null
 	if (bIsReloading) return;	//Exit if the player is already reloading
-	switch (SelectedGun) {
-	case Guns::AK47:
-		if (AK47Weapon->GetClipSize() == AK47Weapon->GetAmmo()) return; //Exit if the Player Has full Ammo
-		break;
-	case Guns::M4A:
-		if (M4AWeapon->GetClipSize() == M4AWeapon->GetAmmo()) return; //Exit if the Player Has full Ammo
-		break;
-	}
+	if (EquippedGun->Execute_GetClipSizeOfGun(EquippedGun->_getUObject()) == EquippedGun->Execute_GetMaxAmmoOfGun(EquippedGun->_getUObject())) return;	//Exit if the Player Has full Ammo
 	bIsReloading = true;
 	UGameplayStatics::PlaySound2D(this, ReloadSound);	//Play the reload sound
 	GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &AZombieShooterCharacter::StopReload, 2.5f, true, 2.5f);	//Set IsReloading to false when the animation is done playing. the Animation length was checked and found to be 3.3 secs, but it can be set to a desired time
@@ -178,14 +204,7 @@ void AZombieShooterCharacter::Reload()
 void AZombieShooterCharacter::StopReload()
 {
 	bIsReloading = false;
-	switch (SelectedGun) {
-	case Guns::AK47:
-		AK47Weapon->Reload();	//Has finished reloading, Increment the Ammo count.
-		break;
-	case Guns::M4A:
-		M4AWeapon->Reload();	//Has finished reloading, Increment the Ammo count.
-		break;
-	}
+	if (EquippedGun) EquippedGun->Execute_ReloadGun(EquippedGun->_getUObject());
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);	//Clear the Timer After Stopping the reload Animation;
 }
 
@@ -193,7 +212,8 @@ void AZombieShooterCharacter::StartAutomatedFire()
 {
 	//AutomatedFireTimerDelegate.BindUFunction(this, FName("Fire"));
 	bIsFiring = true;
-	float FireRate = (SelectedGun == Guns::AK47) ? AK47Weapon->GetFireRate() : M4AWeapon->GetFireRate();
+	if (!EquippedGun) return;
+	float FireRate = EquippedGun->Execute_GetFireRateOfGun(EquippedGun->_getUObject()); 
 	GetWorldTimerManager().SetTimer(AutomatedFireTimerHandle, this, &AZombieShooterCharacter::Fire, FireRate, true, 0.f);
 }
 
@@ -209,7 +229,7 @@ void AZombieShooterCharacter::CrouchPlayer()
 	bIsCrouching = true;	//Enables the Crouch animation
 	Crouch();	//Call the In Built Crouch Function;
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
-	GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed;	//Reduces the speed of the player 
 	
 }
 
@@ -217,8 +237,8 @@ void AZombieShooterCharacter::Stand()
 {
 	bIsSprinting = false;	//Disables the sprint animation
 	bIsCrouching = false;	//Disables the Crouch animation
-	UnCrouch();
-	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
+	UnCrouch();		//Call the In Built function to disable the Crouch
+	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;	//Set the 
 }
 
 void AZombieShooterCharacter::Sprint() 
@@ -234,14 +254,23 @@ void AZombieShooterCharacter::AimDown()
 	if (bIsReloading || bIsSprinting) return;	//Stop the Character from Aiming when he is reloading or sprinting
 	FollowCamera->Deactivate();
 	ADSCamera->Activate();
-	GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed;
+	if (bIsAiming && bIsAiming)
+	{
+		//reduce the Walk Speed to half of the crouch speed if the character is also aiming down
+		GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed / 2;
+	}
+	else 
+	{
+		GetCharacterMovement()->MaxWalkSpeed = MaxCrouchSpeed;
+	}
+	
 	bIsAiming = true;
 }
 
 void AZombieShooterCharacter::StopAiming()
 {
-	FollowCamera->Activate();
 	ADSCamera->Deactivate();
+	SwitchCamera(CameraPos);
 	GetCharacterMovement()->MaxWalkSpeed = MaxWalkSpeed;
 	bIsAiming = false;
 }
@@ -259,28 +288,82 @@ void AZombieShooterCharacter::ReduceTimeLeftToLive()
 	TimeLeftToLive--;
 }
 
+void AZombieShooterCharacter::SwitchGun(Guns ToGun)
+{
+	
+	if (bIsFiring) return;	//Exit if the Character is currently Firing a weapon
+	switch (ToGun) 
+	{
+	case Guns::AK47:
+		SelectedGun = Guns::AK47;
+		AK47Weapon->SetActorHiddenInGame(false);
+		M4AWeapon->SetActorHiddenInGame(true);
+		EquippedGun = AK47Weapon;
+		break;
+	case Guns::M4A:
+		SelectedGun = Guns::M4A;
+		M4AWeapon->SetActorHiddenInGame(false);
+		AK47Weapon->SetActorHiddenInGame(true);
+		EquippedGun = M4AWeapon;
+		break;
+	}
+}
+
 void AZombieShooterCharacter::SwitchGun()
 {
 	if (!bHasPickedM4A) return;	//Exit if the player has not yet picked up M4A gun
-	if (bIsFiring) return;	//Exit if the Character is currently Firing a weapon
 	switch (SelectedGun) 
 	{
 	case Guns::AK47:
-		SelectedGun = Guns::M4A;
-		AK47Weapon->SetActorHiddenInGame(true);
-		M4AWeapon->SetActorHiddenInGame(false);
+		SwitchGun(Guns::M4A);
 		break;
 	case Guns::M4A:
-		SelectedGun = Guns::AK47;
-		M4AWeapon->SetActorHiddenInGame(true);
-		AK47Weapon->SetActorHiddenInGame(false);
+		SwitchGun(Guns::AK47);
 		break;
 	}
+}
+
+void AZombieShooterCharacter::Die()
+{
+	bIsDead = true;
+	UGameplayStatics::SpawnSound2D(this, DeathSound, 1.f);
+
+}
+
+void AZombieShooterCharacter::SwitchCamera()
+{
+	switch (CameraPos)
+	{
+	case CameraPosition::FirstPersonCamera:
+		SwitchCamera(CameraPosition::ThirdPersonCamera);
+		break;
+	case CameraPosition::ThirdPersonCamera:
+		SwitchCamera(CameraPosition::FirstPersonCamera);
+		break;
+	}
+}
+
+void AZombieShooterCharacter::SwitchCamera(CameraPosition cameraPosition)
+{
+	switch (cameraPosition)
+	{
+	case CameraPosition::FirstPersonCamera:
+		FollowCamera->Activate();
+		ThirdPersonCamera->Deactivate();
+		break;
+	case CameraPosition::ThirdPersonCamera:
+		ThirdPersonCamera->Activate();
+		FollowCamera->Deactivate();
+		break;
+	}
+	CameraPos = cameraPosition;
+
 }
 
 void AZombieShooterCharacter::TakeDamage(float RateOfDamage)
 {
 	//Deduct the Rate of Damage From the Armor
+	if (bIsDead) return;
 	Armor -= RateOfDamage;
 	//Check if the Armor has gone below 0, then deduct from the health
 	if (Armor < 0.f)
@@ -288,6 +371,13 @@ void AZombieShooterCharacter::TakeDamage(float RateOfDamage)
 		Health += Armor;
 		Armor = 0;
 	}
+	if (Health < 0.f) {
+		Die();
+	}
+	else {
+		UGameplayStatics::SpawnSound2D(this, InjuredSound, 1.f);
+	}
+
 	//Display the Damage Effect Widget (Red Vignette)
 	DamageEffectWidget = CreateWidget<UUserWidget>(GetGameInstance(), DamageEffectWidgetTemplate);
 	DamageEffectWidget->AddToViewport();
@@ -307,7 +397,7 @@ void AZombieShooterCharacter::OnResetVR()
 
 void AZombieShooterCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		Jump();
+	Jump();
 }
 
 void AZombieShooterCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
@@ -359,7 +449,14 @@ void AZombieShooterCharacter::MoveRight(float Value)
 void AZombieShooterCharacter::Tick(float DeltaTime) {
 	
 	Super::Tick(DeltaTime);
-
+	
+	//Spread the CrossHair based on the Character's speed
+	if ((!bIsAiming) && (WBCrosshairWidget)) {
+		float VelocityLength = GetVelocity().Size();
+		WBCrosshairWidget->PlayerVelocity = MapRangeClamped(VelocityLength, 0.f, 450.f, 5.f, 80.f);
+		WBCrosshairWidget->SetCrossHairSpread();
+		
+	}
 }
 
 void AZombieShooterCharacter::BeginPlay() {
@@ -373,7 +470,7 @@ void AZombieShooterCharacter::BeginPlay() {
 	FPSHudWidgetTemplate = LoadClass<UFPSHudWidgetClass>(nullptr, TEXT("/Game/ThirdPersonCpp/Blueprints/Widgets/FPSHud.FPSHud_C"));
 	EnemyKillfeedWidgetTemplate = LoadClass<UEnemyKillFeedWidgetClass>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/KillFeed.KillFeed_C"));
 	DamageEffectWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCpp/Blueprints/Widgets/DamageEffect.DamageEffect_C"));
-	WBCrosshairWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/DynamicCrossHair.WBCrosshair_C"));
+	WBCrosshairWidgetTemplate = LoadClass<UCrossHairWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/DynamicCrossHair.WBCrosshair_C"));
 	HitMarkerWidgetTemplate = LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Widgets/HitMarker.HitMarker_C"));
 
 	//Fetch the Sounds
@@ -387,14 +484,16 @@ void AZombieShooterCharacter::BeginPlay() {
 	FName WeaponSocketName = TEXT("Weapon_Attach"); 
 	AK47Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
 	M4AWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
-	M4AWeapon->SetActorHiddenInGame(true);
+	SwitchGun(Guns::AK47);	//Sets Ak47 as the default Gun
 
 	//Display the FPSHud widget on the viewport
 	FPSHudWidget = CreateWidget<UFPSHudWidgetClass>(GetGameInstance(), FPSHudWidgetTemplate);
+	//FPSHudWidget->PlayerId = stringifiedPlayerId;
+	//FPSHudWidget->PlayerNickname = PlayerNickName;
 	FPSHudWidget->AddToViewport();
 
 	//Create the  WBCrosshair widget and add to the View Port
-	WBCrosshairWidget = CreateWidget<UUserWidget>(GetGameInstance(), WBCrosshairWidgetTemplate);
+	WBCrosshairWidget = CreateWidget<UCrossHairWidget>(GetGameInstance(), WBCrosshairWidgetTemplate);
 	WBCrosshairWidget->AddToViewport();
 
 
@@ -408,6 +507,9 @@ void AZombieShooterCharacter::BeginPlay() {
 
 	StopAiming();	//Sets the Follow Camera as the default Camera and disables the ADS Aim Camera till its needed.
 
+
+	FollowCamera->Deactivate();
+	ThirdPersonCamera->Activate();
 
 }
 

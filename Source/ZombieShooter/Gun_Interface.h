@@ -13,6 +13,8 @@
 #include "Engine/GameEngine.h"
 #include "ConstructorHelpers.h"
 #include "Damageable.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/PawnNoiseEmitterComponent.h"
 #include "DrawDebugHelpers.h"
 
 #include "Gun_Interface.generated.h"
@@ -29,9 +31,10 @@ class UGun_Interface : public UInterface
  */
 class ZOMBIESHOOTER_API IGun_Interface
 {
-	GENERATED_BODY()
+	GENERATED_IINTERFACE_BODY()
 
 protected:
+
 	//This holds the Current Ammo in the Gun's Clip(Available number of bullets in the clip)		int Ammo;
 		int Ammo;
 	//The Total Ammo Available in the Gun
@@ -48,31 +51,58 @@ protected:
 
 	//The Max Distance the Bullet Can Travel
 		float MaxDistanceBulletCanTravel;
+
+	//The Volume of noise the gun emits
+		float NoiseVolume;
+		
 public:
 
 	
 	virtual void OnFire(UCameraComponent* FollowCamera);
 
+
+	//-----------------------------BASE FUNCTIONS------------------------------------//
+
 	/**There is a default function for reload which all guns have but they Can Uveride it if they wish**/
 	void Reload();
 
-	//Increments the Ammo by the Number of clips
-	void IncrementMaxAmmo() { MaxAmmo += ClipSize; }
+	//Increments the Ammo by the Number of clips when the owner Of the Gun Picks Up an Ammo
+	void IncrementMaxAmmo();
 
-	virtual const USkeletalMeshComponent* GetSkeletalMeshComponent() { return nullptr; };
-
-	virtual const AActor* GetChildActorReference() { return nullptr; };
-
-	virtual void CustomFireEventForWeapon(FHitResult& OutHit) {};
-protected: 
+	//------------------------------END OF BASE FUNCTIONS-----------------------------//
 
 
-	//Holds the Sound of the Weapon when fired
-		USoundBase* FireSound;
 
-		UParticleSystem* FlashEmitter;
 
-		UParticleSystemComponent* FlashEmitterComponent;
+	//-----------INTERFACE FUNCTIONS START--------------//
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Actions")
+		void FireGun(UCameraComponent* FollowCamera, AActor* NoiseMaker, UPawnNoiseEmitterComponent *PawnNoiseEmitter);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Actions")
+		void ReloadGun();
+
+	//------------End Of Interface Functions --------------//
+
+
+
+
+
+
+	//--------------- HELPER FUNCTIONS START -------------------//
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Getters")
+		int GetClipSizeOfGun();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Getters")
+		int GetMaxAmmoOfGun();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Getters")
+		int GetAmmoOfGun();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Getters")
+		float GetFireRateOfGun();
+
+	//--------------- HELPER FUNCTIONS END -------------------//
 
 
 

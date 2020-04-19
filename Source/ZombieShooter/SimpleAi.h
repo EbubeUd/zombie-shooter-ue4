@@ -10,7 +10,10 @@
 #include "Engine/GameEngine.h"
 #include "Runtime/AIModule/Classes/AIController.h"
 #include "Runtime/NavigationSystem/Public/NavigationSystem.h"
+#include "Components/BoxComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Damageable.h"
+#include "Components/AudioComponent.h"
 #include "SimpleAi.generated.h"
 
 UCLASS()
@@ -30,6 +33,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="AI")
 	UPawnSensingComponent* PawnSensingComp;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		UBoxComponent* HandCollisionComp;
+
 	UFUNCTION()
 		void OnHearNoise(APawn *OtherActor, const FVector &Location, float Volume);
 
@@ -46,19 +52,43 @@ protected:
 	//The Handle that will be used to control the timer for moving the Character around at intervals
 	FTimerHandle CharacterMovementTimerHandle;
 
+	FTimerHandle DeathTimerHandle;
+
 	UPROPERTY()
 		AAIController* AICtrl;
 
 	/** Called At intervals to move the Character from one place to thhe other **/
 	void MoveCharacterAround();
 
+	void CompleteDeath();
+
 	/**Called when the Player is Deactivated*/
 	void EndPlay(const EEndPlayReason::Type EndPlayReason);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		bool bAttacking;
+
+	bool bIsDead;
+
+	UPROPERTY(VisibleAnywhere, Category = "Audio")
+		UAudioComponent* AudioComp;
+
+	USoundBase* GrowlSound;
+
+	UFUNCTION()
+	void InflictDamageonPlayer(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
 		void TakeBulletDamage(float Damage);
 		virtual void TakeBulletDamage_Implementation(float Damage) override;
 	
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
+		void TakeFireDamage();
+		virtual void TakeFireDamage_Implementation() override;
+
+
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -73,6 +103,9 @@ public:
 	//Holds the Radius in Float that the Character is allowed to Move to while roaming
 	UPROPERTY()
 		float MovementRadius;
+
+	UPROPERTY()
+		float Gravity;
 
 	//Holds the name of the Enemy
 	UPROPERTY(EditAnywhere, Category = "Biography")

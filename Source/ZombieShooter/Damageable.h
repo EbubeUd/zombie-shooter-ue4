@@ -20,10 +20,17 @@ class ZOMBIESHOOTER_API IDamageable
 {
 	GENERATED_IINTERFACE_BODY()
 
-		// Add interface functions to this class. This is the class that will be inherited to implement this interface.
-		UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
-			 void TakeBulletDamage(float Damage);
-public:
+	/**
+	 * This Function is Called if a damageable object has been shot
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
+		void TakeBulletDamage(float Damage);
+
+	/**
+	 * This function is called if a damageable object comes in contact with fire
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage")
+		void TakeFireDamage();
 	
 	
 };

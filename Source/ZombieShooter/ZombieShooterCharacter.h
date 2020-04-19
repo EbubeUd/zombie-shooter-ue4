@@ -1,23 +1,40 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
+ #pragma once
+ 
+ #include "CoreMinimal.h"
+ #include "GameFramework/Character.h"
+ #include "Blueprint/UserWidget.h"
+ #include "Runtime/Engine/Public/TimerManager.h"
+ #include "AK47_Base.h"
+ #include "EnemyKillFeedWidgetClass.h"
+ #include "FPSHudWidgetClass.h"
+ #include "CrossHairWidget.h"
+ #include "Components/SceneCaptureComponent2D.h"
+ #include "Enums/Enums.h"
+ #include "M4A_Base.h"
+ #include "Gun_Interface.h"
+ #include "Helpers/Mathematics.h"
+ #include "Components/PawnNoiseEmitterComponent.h"
+ #include "Components/AudioComponent.h"
+ #include "Online.h"
 
-#include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Blueprint/UserWidget.h"
-#include "Runtime/Engine/Public/TimerManager.h"
-#include "AK47_Base.h"
-#include "EnemyKillFeedWidgetClass.h"
-#include "FPSHudWidgetClass.h"
-#include "Components/SceneCaptureComponent2D.h"
-#include "Enums/Enums.h"
-#include "M4A_Base.h"
-#include "ZombieShooterCharacter.generated.h"
-
-UCLASS(config=Game)
-class AZombieShooterCharacter : public ACharacter
+ #include "ZombieShooterCharacter.generated.h"
+ 
+ UCLASS(config=Game)
+ class AZombieShooterCharacter : public ACharacter
 {
-	GENERATED_BODY()
+	 GENERATED_BODY()
+
+	
+
+
+	//The Player's Id (Im My Case, the Steam Id)
+//	 TSharedPtr<const FUniqueNetId> playerId;
+
+	 //The PLayer's Nickname
+	 FString PlayerNickName;
+
 
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -29,6 +46,8 @@ class AZombieShooterCharacter : public ACharacter
 		class UCameraComponent *FollowCamera;
 
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class UCameraComponent* ThirdPersonCamera;
 
 	UPROPERTY()
 		TSubclassOf<UFPSHudWidgetClass> FPSHudWidgetTemplate;
@@ -43,7 +62,7 @@ class AZombieShooterCharacter : public ACharacter
 
 
 	UPROPERTY()
-		TSubclassOf<UUserWidget> WBCrosshairWidgetTemplate;
+		TSubclassOf<UCrossHairWidget> WBCrosshairWidgetTemplate;
 
 	UPROPERTY()
 		TSubclassOf<UEnemyKillFeedWidgetClass> EnemyKillfeedWidgetTemplate;
@@ -59,12 +78,31 @@ class AZombieShooterCharacter : public ACharacter
 	UPROPERTY()
 		USoundBase* ReloadSound;
 
+	UPROPERTY()
+		UPawnNoiseEmitterComponent* PawnNoiseEmitter;
+
+	UPROPERTY()
+		USoundBase* InjuredSound;
+
+	UPROPERTY()
+		USoundBase* DeathSound;
+
+	UPROPERTY()
+		CameraPosition CameraPos;
 public:
 	AZombieShooterCharacter();
 
+	UPROPERTY(VisibleAnywhere, Category = "Multiplayer")
+		FString stringifiedPlayerId;
+
+
+	//FPSHud Widget
+	UPROPERTY()
+		UFPSHudWidgetClass *FPSHudWidget;
+
 	//WBCrosshair Widget
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Widgets")
-		UUserWidget* WBCrosshairWidget;
+		UCrossHairWidget* WBCrosshairWidget;
 
 	//Enemy Kill feed Widget 
 	UPROPERTY()
@@ -78,7 +116,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapons")
+	TScriptInterface<IGun_Interface> EquippedGun;
 
 
 protected:
@@ -141,7 +180,20 @@ protected:
 	void ReduceTimeLeftToLive();
 
 	/** Handler For Switching the Gun that the Character is currently using among the available Guns He has **/
+	void SwitchGun(Guns ToGun);
+
 	void SwitchGun();
+
+	/** Defines Actions to occur when the character dies **/
+	void Die();
+
+	/**Toggles the Camera to be either Third Person Camera or First Person Character **/
+	void SwitchCamera();
+
+	/**
+	 * Switches the active camera to a specified one. Either First Person or third Person camera
+	 */
+	void SwitchCamera(CameraPosition cameraPosition);
 
 	/** Tick Event. Calls on Every Frame **/
 	void Tick(float DeltaTime);
@@ -165,9 +217,8 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 public:
-	//FPSHud Widget
-	UPROPERTY()
-		UFPSHudWidgetClass *FPSHudWidget;
+
+
 
 	//Holds the Health Of the Character
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -195,6 +246,9 @@ public:
 	UPROPERTY()
 		bool bIsFiring;
 
+	UPROPERTY()
+		bool bIsRecievingDamage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		FString ObjectiveText;
 
@@ -217,6 +271,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		bool bHasPickedM4A;
+
+	UPROPERTY()
+		bool bIsDead;
 
 	/**Regenerates the plaer's  Armor After Damage
 	*@Param fRate - Holds the Rate in float to add to the user's Armor
@@ -260,6 +317,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapons")
 		Guns SelectedGun;
+
 
 protected:
 	FTimerDelegate ArmorRegenerationTimerDelegate;
