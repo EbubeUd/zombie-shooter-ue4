@@ -72,7 +72,7 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	//Create the ThirsPersonCamera
 	ThirdPersonCamera = CreateDefaultSubobject<UCameraComponent>("ThirdPersonCamera");
 	ThirdPersonCamera->bUsePawnControlRotation = true;
-	ThirdPersonCamera->SetupAttachment(GetMesh());
+	//ThirdPersonCamera->SetupAttachment(GetMesh());
 
 	//Set Up The ADS Camera
 	ADSCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ADSCamera"));
@@ -90,7 +90,8 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	ObjectiveText = "Progress Through the Level";
 
 	//Set the Selected Gun
-	SelectedGun = Guns::AK47;
+	PrimaryWeapons.Init(nullptr, 5);
+	SecondaryWeapons.Init(nullptr, 5);
 
 
 	//Set up the Sounds
@@ -100,6 +101,11 @@ AZombieShooterCharacter::AZombieShooterCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 
+	WeaponSocketMap.Add(WeaponAttachmentPosition::Arm, TEXT("Arm"));
+	WeaponSocketMap.Add(WeaponAttachmentPosition::Wrist, TEXT("Wrist"));
+	WeaponSocketMap.Add(WeaponAttachmentPosition::LeftHolster, TEXT("LeftHolster"));
+	WeaponSocketMap.Add(WeaponAttachmentPosition::RightHolster, TEXT("RightHolster"));
+	WeaponSocketMap.Add(WeaponAttachmentPosition::BackHolster, TEXT("BackHolster"));
 }
 
 
@@ -131,7 +137,7 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AZombieShooterCharacter::OnResetVR);
 
 	//Action 
-	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AZombieShooterCharacter::Fire);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AZombieShooterCharacter::Fire);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AZombieShooterCharacter::StartAutomatedFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AZombieShooterCharacter::StopAutomatedFire);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AZombieShooterCharacter::CrouchPlayer);
@@ -144,8 +150,8 @@ void AZombieShooterCharacter::SetupPlayerInputComponent(class UInputComponent* P
 
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AZombieShooterCharacter::Reload);
 
-	PlayerInputComponent->BindAction("SwitchGun", IE_Pressed, this, &AZombieShooterCharacter::SwitchGun);
 	PlayerInputComponent->BindAction("SwitchCamera", IE_Pressed, this, &AZombieShooterCharacter::SwitchCamera);
+	PlayerInputComponent->BindAction("SwitchWeapon", IE_Pressed, this, &AZombieShooterCharacter::SwitchWeapon);
 
 }
 
@@ -165,7 +171,7 @@ void AZombieShooterCharacter::RegenerateArmor(float RateOfRegeneration) {
 	
 }
 
-void AZombieShooterCharacter::Fire() 
+void AZombieShooterCharacter::Fire()
 {
 	if (bIsReloading || bIsSprinting) return;	//Exit if the Player is Reloading or sprinting
 	if (!PawnNoiseEmitter) return;
@@ -175,8 +181,10 @@ void AZombieShooterCharacter::Fire()
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Camera is null"));
 		return;
 	}
-	if (!EquippedGun->_getUObject())
+	if (EquippedWeapon == nullptr)
 	{
+		//Perform the combat action
+
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Equipped Gun U Object is null"));
 		return;
 	}
@@ -187,15 +195,15 @@ void AZombieShooterCharacter::Fire()
 		return;
 	}
 
-	if (EquippedGun) EquippedGun->Execute_FireGun(EquippedGun->_getUObject(), CameraInUse, this, PawnNoiseEmitter);
+	if (EquippedWeapon) EquippedWeapon->Fire(CameraInUse, this, PawnNoiseEmitter);
 }
 
 void AZombieShooterCharacter::Reload()
 {
 	StopAiming();	//Stop the Character From Aiming when About to reload
-	if (!EquippedGun) return;	//Exit if the Equipped weapon is null
+	if (!EquippedWeapon) return;	//Exit if the Equipped weapon is null
 	if (bIsReloading) return;	//Exit if the player is already reloading
-	if (EquippedGun->Execute_GetClipSizeOfGun(EquippedGun->_getUObject()) == EquippedGun->Execute_GetMaxAmmoOfGun(EquippedGun->_getUObject())) return;	//Exit if the Player Has full Ammo
+	if (EquippedWeapon->GetClipSize() == EquippedWeapon->GetMaxAmmo()) return;	//Exit if the Player Has full Ammo
 	bIsReloading = true;
 	UGameplayStatics::PlaySound2D(this, ReloadSound);	//Play the reload sound
 	GetWorldTimerManager().SetTimer(ReloadTimerHandle, this, &AZombieShooterCharacter::StopReload, 2.5f, true, 2.5f);	//Set IsReloading to false when the animation is done playing. the Animation length was checked and found to be 3.3 secs, but it can be set to a desired time
@@ -204,7 +212,7 @@ void AZombieShooterCharacter::Reload()
 void AZombieShooterCharacter::StopReload()
 {
 	bIsReloading = false;
-	if (EquippedGun) EquippedGun->Execute_ReloadGun(EquippedGun->_getUObject());
+	if (EquippedWeapon) EquippedWeapon->Reload();
 	GetWorldTimerManager().ClearTimer(ReloadTimerHandle);	//Clear the Timer After Stopping the reload Animation;
 }
 
@@ -212,8 +220,8 @@ void AZombieShooterCharacter::StartAutomatedFire()
 {
 	//AutomatedFireTimerDelegate.BindUFunction(this, FName("Fire"));
 	bIsFiring = true;
-	if (!EquippedGun) return;
-	float FireRate = EquippedGun->Execute_GetFireRateOfGun(EquippedGun->_getUObject()); 
+	if (!EquippedWeapon) return;
+	float FireRate = EquippedWeapon->GetFireRate();
 	GetWorldTimerManager().SetTimer(AutomatedFireTimerHandle, this, &AZombieShooterCharacter::Fire, FireRate, true, 0.f);
 }
 
@@ -288,40 +296,110 @@ void AZombieShooterCharacter::ReduceTimeLeftToLive()
 	TimeLeftToLive--;
 }
 
-void AZombieShooterCharacter::SwitchGun(Guns ToGun)
+void AZombieShooterCharacter::SwitchWeapon()
 {
-	
-	if (bIsFiring) return;	//Exit if the Character is currently Firing a weapon
-	switch (ToGun) 
+	int index = 0;
+	switch(ActiveWeaponType)
 	{
-	case Guns::AK47:
-		SelectedGun = Guns::AK47;
-		AK47Weapon->SetActorHiddenInGame(false);
-		M4AWeapon->SetActorHiddenInGame(true);
-		EquippedGun = AK47Weapon;
+		case WeaponType::PrimaryWeapon:
+			index = ActivePrimaryWeaponIndex == (PrimaryWeapons.Num() - 1) ? 0 : ActivePrimaryWeaponIndex + 1;
+			SwitchWeapon(ActiveWeaponType, index);
+			break;
+		case WeaponType::SecondaryWeapon:
+			index = ActiveSecondaryWeaponIndex == (SecondaryWeapons.Num() - 1) ? 0 : ActiveSecondaryWeaponIndex + 1;
+			SwitchWeapon(ActiveWeaponType, index);
+			break;
+	}
+}
+
+void AZombieShooterCharacter::SwitchWeapon(WeaponType weaponType, int index)
+{
+	switch (weaponType)
+	{
+		case WeaponType::PrimaryWeapon:
+			if(PrimaryWeapons.Num() > index)
+			{
+				PrimaryWeapon = PrimaryWeapons[index];
+				ActivePrimaryWeaponIndex = index;
+				ActiveWeaponType = WeaponType::PrimaryWeapon;
+				EquippedWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketMap[EquippedWeapon->AttachmentPositionWhenInactive]);
+				EquippedWeapon = PrimaryWeapon;
+				EquippedWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketMap[EquippedWeapon->AttachmentPositionWhenActive]);
+				EquippedWeapon->OnEquip(this);
+			}
+
+			break;
+		case WeaponType::SecondaryWeapon:
+			if (SecondaryWeapons.Num() > index)
+			{
+				SecondaryWeapon = SecondaryWeapons[index];
+				ActiveSecondaryWeaponIndex = index;
+				EquippedWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketMap[EquippedWeapon->AttachmentPositionWhenInactive]);
+				EquippedWeapon = SecondaryWeapon;
+				EquippedWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketMap[EquippedWeapon->AttachmentPositionWhenActive]);
+				ActiveWeaponType = WeaponType::SecondaryWeapon;
+				EquippedWeapon->OnEquip(this);
+
+			}
+	
+			break;
+	}
+}
+
+bool AZombieShooterCharacter::AddWeapon(AWeapon_Base* weapon)
+{
+	switch (weapon->Type)
+	{
+		case WeaponType::PrimaryWeapon:
+			for (int i = 0; i < PrimaryWeapons.Num(); i++)
+			{
+				if (PrimaryWeapons[i] != nullptr && weapon != nullptr)
+				{
+					if (PrimaryWeapons[i]->Name == weapon->Name)
+					{
+						return false;
+					}
+				}
+			
+			}
+			if (ActiveWeaponType == weapon->Type) EquippedWeapon = weapon;
+			PrimaryWeapons.Add(weapon);
+			SwitchWeapon(weapon->Type, PrimaryWeapons.Find(weapon));
+		return true;
+		case WeaponType::SecondaryWeapon:
+			for (int i = 0; i < SecondaryWeapons.Num(); i++)
+			{
+				if (SecondaryWeapons[i] != nullptr && weapon != nullptr)
+				{
+					if (SecondaryWeapons[i]->Name == weapon->Name)
+					{
+						return false;
+					}
+				}
+			}
+			if (ActiveWeaponType == weapon->Type) EquippedWeapon = weapon;
+			SecondaryWeapons.Add(weapon);
+			SwitchWeapon(weapon->Type, SecondaryWeapons.Find(weapon));
+		return true;
+	}
+	return false;
+}
+
+
+void AZombieShooterCharacter::SwitchWeaponType()
+{
+	switch (ActiveWeaponType)
+	{
+	case WeaponType::PrimaryWeapon:
+		SwitchWeapon(WeaponType::SecondaryWeapon, ActiveSecondaryWeaponIndex);
 		break;
-	case Guns::M4A:
-		SelectedGun = Guns::M4A;
-		M4AWeapon->SetActorHiddenInGame(false);
-		AK47Weapon->SetActorHiddenInGame(true);
-		EquippedGun = M4AWeapon;
+	case WeaponType::SecondaryWeapon:
+		SwitchWeapon(WeaponType::PrimaryWeapon, ActivePrimaryWeaponIndex);
 		break;
 	}
 }
 
-void AZombieShooterCharacter::SwitchGun()
-{
-	if (!bHasPickedM4A) return;	//Exit if the player has not yet picked up M4A gun
-	switch (SelectedGun) 
-	{
-	case Guns::AK47:
-		SwitchGun(Guns::M4A);
-		break;
-	case Guns::M4A:
-		SwitchGun(Guns::AK47);
-		break;
-	}
-}
+
 
 void AZombieShooterCharacter::Die()
 {
@@ -357,7 +435,7 @@ void AZombieShooterCharacter::SwitchCamera(CameraPosition cameraPosition)
 		break;
 	}
 	CameraPos = cameraPosition;
-
+	OnCameraPositionSwitched(CameraPos);
 }
 
 void AZombieShooterCharacter::TakeDamage(float RateOfDamage)
@@ -385,7 +463,8 @@ void AZombieShooterCharacter::TakeDamage(float RateOfDamage)
 
 void AZombieShooterCharacter::ShowKillFeed(FString EnemyName)
 {
-	EnemyKillfeedWidget = CreateWidget<UEnemyKillFeedWidgetClass>(GetGameInstance(), EnemyKillfeedWidgetTemplate);
+	UGameInstance* gameInstance = GetGameInstance();
+	EnemyKillfeedWidget = CreateWidget<UEnemyKillFeedWidgetClass>(gameInstance, EnemyKillfeedWidgetTemplate);
 	EnemyKillfeedWidget->EnemyName = EnemyName;
 	EnemyKillfeedWidget->AddToViewport();
 }
@@ -455,7 +534,6 @@ void AZombieShooterCharacter::Tick(float DeltaTime) {
 		float VelocityLength = GetVelocity().Size();
 		WBCrosshairWidget->PlayerVelocity = MapRangeClamped(VelocityLength, 0.f, 450.f, 5.f, 80.f);
 		WBCrosshairWidget->SetCrossHairSpread();
-		
 	}
 }
 
@@ -484,7 +562,7 @@ void AZombieShooterCharacter::BeginPlay() {
 	FName WeaponSocketName = TEXT("Weapon_Attach"); 
 	AK47Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
 	M4AWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), WeaponSocketName);
-	SwitchGun(Guns::AK47);	//Sets Ak47 as the default Gun
+
 
 	//Display the FPSHud widget on the viewport
 	FPSHudWidget = CreateWidget<UFPSHudWidgetClass>(GetGameInstance(), FPSHudWidgetTemplate);
@@ -493,8 +571,8 @@ void AZombieShooterCharacter::BeginPlay() {
 	FPSHudWidget->AddToViewport();
 
 	//Create the  WBCrosshair widget and add to the View Port
-	WBCrosshairWidget = CreateWidget<UCrossHairWidget>(GetGameInstance(), WBCrosshairWidgetTemplate);
-	WBCrosshairWidget->AddToViewport();
+	/*WBCrosshairWidget = CreateWidget<UCrossHairWidget>(GetGameInstance(), WBCrosshairWidgetTemplate);
+	WBCrosshairWidget->AddToViewport();*/
 
 
 	//Start the Timer for Regenerating the Armor
@@ -513,8 +591,30 @@ void AZombieShooterCharacter::BeginPlay() {
 
 }
 
+void AZombieShooterCharacter::OnCameraPositionSwitched_Implementation(CameraPosition cameraPosition)
+{
+
+}
+
  void AZombieShooterCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	 Super::EndPlay(EndPlayReason);
 	//clear ALL timers that belong to this (Actor) instance.
 	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 }
+
+
+ void AZombieShooterCharacter::TriggerEnter(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+ {
+	 AWeapon_Base* weapon = Cast<AWeapon_Base>(OtherActor);
+
+	 if (weapon != nullptr)
+	 {
+		 if (weapon->bHasBeenPicked) return;	
+		 weapon->bHasBeenPicked = true;
+		 FPSHudWidget->PlayAnimation(FPSHudWidget->M4APickUpAnimation);
+		 USoundBase* PickupSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/reload.reload"));
+		 UGameplayStatics::PlaySound2D(this, PickupSound);
+		 AddWeapon(weapon);
+	 }
+ }
+

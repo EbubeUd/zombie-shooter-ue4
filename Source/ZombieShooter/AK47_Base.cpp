@@ -5,31 +5,15 @@
 
 // Sets default values
 AAK47_Base::AAK47_Base()
+	:Super()
 {
+	
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	//Set the Properties of the weapon
-	FireRate = .1f;
-	MaxAmmo = 750;
-	ClipSize = 50;
-	Ammo = ClipSize;
-	Damage = .1f;
-	MaxDistanceBulletCanTravel = 1500.f;
-	NoiseVolume = .8f;
-
-
-	//Set the Skeletal Mesh of the Weapon
-	SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/ThirdPersonCPP/Blueprints/Weapons/AK47/AK.AK"));
-	WeaponSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponSkeletalMesh");
-	if(SkeletalMesh) WeaponSkeletalMesh->SetSkeletalMesh(SkeletalMesh);
-	WeaponSkeletalMesh->SetupAttachment(RootComponent);	
-	
 
 	//Emitter
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> PS(TEXT("ParticleSystem'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
 	FlashEmitter = PS.Object;
-
 	
 }
 
@@ -37,7 +21,6 @@ AAK47_Base::AAK47_Base()
 void AAK47_Base::BeginPlay()
 {
 	Super::BeginPlay();
-	FireSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/ThirdPersonCPP/Audio/Ak.Ak"));
 }
 
 void AAK47_Base::SpawnParticleEffects()
@@ -49,6 +32,7 @@ void AAK47_Base::SpawnParticleEffects()
 
 void AAK47_Base::SpawnGunShotSound(AActor* ShooterCharacter, UPawnNoiseEmitterComponent* PawnNoiseEmitter)
 {
+	if (FireSound == nullptr) return;
 	//Spawn a GunShot 
 	UGameplayStatics::PlaySound2D(this, FireSound, .5f);
 
@@ -56,8 +40,9 @@ void AAK47_Base::SpawnGunShotSound(AActor* ShooterCharacter, UPawnNoiseEmitterCo
 	PawnNoiseEmitter->MakeNoise(ShooterCharacter, NoiseVolume, ShooterCharacter->GetActorLocation());
 }
 
-void AAK47_Base::FireGun_Implementation(UCameraComponent* FollowCamera, AActor* ShooterCharacter, UPawnNoiseEmitterComponent *PawnNoiseEmitter)
+void AAK47_Base::Fire(UCameraComponent* FollowCamera, AActor* ShooterCharacter, UPawnNoiseEmitterComponent *PawnNoiseEmitter)
 {
+	Super::Fire(FollowCamera, ShooterCharacter, PawnNoiseEmitter);
 	//Exit if the Character does not have Enough Ammo 
 	if (Ammo < 1) return;
 
@@ -79,12 +64,10 @@ void AAK47_Base::FireGun_Implementation(UCameraComponent* FollowCamera, AActor* 
 	
 }
 
-void AAK47_Base::ReloadGun_Implementation()
+void AAK47_Base::Reload()
 {
-	Reload();	//Call the base Reload function that alll guns will implement;
-	//Add a custom function for this Gun here
+	Super::Reload();
 }
-
 
 
 

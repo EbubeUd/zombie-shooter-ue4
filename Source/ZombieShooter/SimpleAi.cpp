@@ -55,7 +55,8 @@ void ASimpleAi::BeginPlay()
 void ASimpleAi::OnHearNoise(APawn * OtherActor, const FVector & Location, float Volume)
 {
 	if (bIsDead) return;
-	AICtrl->MoveTo(MainCharacter->GetActorLocation());
+	AZombieShooterCharacter* pawnCharacter = Cast<AZombieShooterCharacter>(OtherActor->GetController());
+	AICtrl->MoveTo(pawnCharacter->GetActorLocation());
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("I hear you"));
 }
 
@@ -64,9 +65,11 @@ void ASimpleAi::OnSeePawn(APawn * OtherPawn)
 {
 	if (bIsDead) return;
 	bCanSeePlayer = true;
+	AZombieShooterCharacter* pawnCharacter = Cast<AZombieShooterCharacter>(OtherPawn->GetController());
 	//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, TEXT("I see you"));
-	AICtrl->MoveTo(MainCharacter->GetActorLocation());
+	AICtrl->MoveTo(pawnCharacter->GetActorLocation());
 	bAttacking = true;
+	MainCharacter = pawnCharacter;
 }
 
 void ASimpleAi::MoveCharacterAround()
@@ -107,7 +110,7 @@ void ASimpleAi::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ASimpleAi::Die() 
 {
-	MainCharacter->ShowKillFeed(Name);
+	if(MainCharacter != nullptr) MainCharacter->ShowKillFeed(Name);
 	//GetMesh()->SetAllBodiesPhysicsBlendWeight(100.f, true);
 	GetMesh()->SetSimulatePhysics(true);
 	
@@ -133,7 +136,7 @@ void ASimpleAi::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 
 void ASimpleAi::InflictDamageonPlayer(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("I Am Hitting Player"));
+	/*GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::White, TEXT("I Am Hitting Player"));*/
 	if (bIsDead) return;
 	AZombieShooterCharacter* MainCharacter = Cast<AZombieShooterCharacter>(OtherActor);
 	if (!MainCharacter) return;

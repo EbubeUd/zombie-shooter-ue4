@@ -7,6 +7,5 @@ float MapRangeClamped(float value, float inRangeMin, float inRangeMax, float out
 	float outValue = (PercentageIn / 100) * std::abs(outRangeMax - outRangeMin);	//Get the percentage Equivalent in the Range of Output Expectation.
 	int *x = new int();
 	return outValue;
-
 }
 

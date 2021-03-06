@@ -3,6 +3,7 @@
  #pragma once
  
  #include "CoreMinimal.h"
+#include "Engine/Engine.h"
  #include "GameFramework/Character.h"
  #include "Blueprint/UserWidget.h"
  #include "Runtime/Engine/Public/TimerManager.h"
@@ -13,7 +14,6 @@
  #include "Components/SceneCaptureComponent2D.h"
  #include "Enums/Enums.h"
  #include "M4A_Base.h"
- #include "Gun_Interface.h"
  #include "Helpers/Mathematics.h"
  #include "Components/PawnNoiseEmitterComponent.h"
  #include "Components/AudioComponent.h"
@@ -87,7 +87,7 @@
 	UPROPERTY()
 		USoundBase* DeathSound;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Camera")
 		CameraPosition CameraPos;
 public:
 	AZombieShooterCharacter();
@@ -117,7 +117,16 @@ public:
 	float BaseLookUpRate;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapons")
-	TScriptInterface<IGun_Interface> EquippedGun;
+		AWeapon_Base* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapons")
+		AWeapon_Base* PrimaryWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapons")
+		AWeapon_Base* SecondaryWeapon;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapons")
+		bool AddWeapon(AWeapon_Base* weapon);
 
 
 protected:
@@ -179,16 +188,25 @@ protected:
 	/** Handler For Reducing the time left for the Characert to live **/
 	void ReduceTimeLeftToLive();
 
-	/** Handler For Switching the Gun that the Character is currently using among the available Guns He has **/
-	void SwitchGun(Guns ToGun);
+	
+	void SwitchWeapon();
 
-	void SwitchGun();
+	void SwitchWeapon(WeaponType weaponType, int index);
+
+
+	UFUNCTION(BlueprintCallable, Category = "Weapons")
+		void SwitchWeaponType();
 
 	/** Defines Actions to occur when the character dies **/
 	void Die();
 
 	/**Toggles the Camera to be either Third Person Camera or First Person Character **/
+	UFUNCTION(BlueprintCallable, Category="Camera")
 	void SwitchCamera();
+	
+	/** Published whenever the Camera position has been switched **/
+	UFUNCTION(BlueprintNativeEvent, Category = "Camera")
+	void OnCameraPositionSwitched(CameraPosition cameraPosition);
 
 	/**
 	 * Switches the active camera to a specified one. Either First Person or third Person camera
@@ -204,11 +222,19 @@ protected:
 	/**Called when the Player is Deactivated*/
 	void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
+	UFUNCTION(BlueprintCallable, Category="Functions")
+		void TriggerEnter(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+	UPROPERTY(EditAnywhere, Category="Weapon Setup")
+		TMap<WeaponAttachmentPosition, FName> WeaponSocketMap;
+
 
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+
 
 public:
 	/** Returns CameraBoom subobject **/
@@ -286,6 +312,22 @@ public:
 	*/
 	UFUNCTION()
 	void TakeDamage(float RateOfDamage = 0.05f);
+
+	UPROPERTY(VisibleAnywhere, Category = "weapons")
+		TArray<AWeapon_Base*> PrimaryWeapons;
+
+	UPROPERTY(VisibleAnywhere, Category = "Weapons")
+		TArray<AWeapon_Base*> SecondaryWeapons;
+
+	UPROPERTY(VisibleAnywhere, Category="Weapons")
+		int ActivePrimaryWeaponIndex;
+
+	
+	UPROPERTY(VisibleAnywhere, Category = "Weapons")
+		int ActiveSecondaryWeaponIndex;
+
+	UPROPERTY(VisibleAnywhere, Category = "Weapons")
+		WeaponType ActiveWeaponType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		AAK47_Base* AK47Weapon;

@@ -33,7 +33,6 @@ AM4APickUp::AM4APickUp()
 void AM4APickUp::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 
